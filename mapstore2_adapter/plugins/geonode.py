@@ -66,7 +66,11 @@ class GeoNodeMapStore2ConfigConverter(BaseMapStore2ConfigConverter):
             ms2_map['maxResolution'] = viewer_obj['map']['maxResolution']
 
             # Backgrouns
-            ms2_map['layers'] = MAP_BASELAYERS + [
+            backgrounds = self.getBackgrounds(viewer, MAP_BASELAYERS)
+            if backgrounds:
+                ms2_map['layers'] = backgrounds
+            else:   
+                ms2_map['layers'] = MAP_BASELAYERS + [
                 # TODO: covnert Viewer Backgroun Layers
                 # Add here more backgrounds e.g.:
                 # {
@@ -190,6 +194,31 @@ class GeoNodeMapStore2ConfigConverter(BaseMapStore2ConfigConverter):
                 tb = traceback.format_exc()
                 logger.error(tb)
         return json.dumps(data, cls=DjangoJSONEncoder, sort_keys=True)
+    
+    def getDefaultBackground(self, name, defaults=[]):
+        for back in defaults:
+            if name == back["name"]:
+                return back
+        
+
+    def getBackgrounds(self, viewer, defaults):
+        backgrounds = []
+        try:
+            viewer_obj = json.loads(viewer)
+            layers = viewer_obj['map']['layers']
+            sources = viewer_obj['sources']
+            for layer in layers:
+                if 'group' in layer and layer['group'] == "background":
+                    source = sources[layer['source']]
+                    background = self.getDefaultBackground(layer["name"], defaults)
+                    background['opacity'] = layer['opacity'] if 'opacity' in layer else 1.0
+                    background['visibility'] = layer['visibility'] if 'visibility' in layer else True
+                    if background:
+                        backgrounds.append(background)
+        except BaseException:
+            tb = traceback.format_exc()
+            logger.error(tb)
+        return backgrounds
 
     def get_overlays(self, viewer):
         overlays = []

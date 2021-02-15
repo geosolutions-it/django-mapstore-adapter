@@ -23,14 +23,13 @@ logger = logging.getLogger(__name__)
 def fixup_map(map_id):
     """ ------------------------------------- Maps Fix """
     from geonode.maps.models import Map
-    from django.contrib.auth import get_user_model
     from mapstore2_adapter.api.models import MapStoreResource
     for _m in Map.objects.filter(id=map_id):
         try:
-            _u = get_user_model().objects.get(username=_m.owner.username)
-            _mm, _created = MapStoreResource.objects.get_or_create(id=_m.id, user_id=_u.id)
+            _mm, _created = MapStoreResource.objects.get_or_create(id=_m.id)
             if _created:
                 _mm.save()
+            MapStoreResource.objects.filter(id=_m.id).update(user=_m.owner)
         except Exception as e:
             logger.exception(e)
 
